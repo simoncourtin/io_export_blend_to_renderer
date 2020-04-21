@@ -7,9 +7,9 @@ bl_info = {
 import sys
 import os
 
-from io_export_blend_to_render import exporter
-from io_export_blend_to_render import pbrt
-from io_export_blend_to_render import nodes
+from io_export_blend_to_renderer import exporter
+from io_export_blend_to_renderer import pbrt
+from io_export_blend_to_renderer import nodes
 
 def register():
     exporter.register()

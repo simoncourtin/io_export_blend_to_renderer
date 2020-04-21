@@ -1,8 +1,8 @@
 import bpy
 import os
 
-from io_export_blend_to_render.exporter import ExporterScene, RenderExporter
-from io_export_blend_to_render.nodes.pbrtNode import PbrtMaterialNode, Pbrt_ExistingExportMaterial
+from io_export_blend_to_renderer.exporter import ExporterScene, RenderExporter
+from io_export_blend_to_renderer.nodes.pbrtNode import PbrtMaterialNode, Pbrt_ExistingExportMaterial
 
 class PbrtScene(ExporterScene):
 
@@ -65,11 +65,13 @@ class PbrtScene(ExporterScene):
         data = []
         for l in self.lamps:
             lamp_type = None
-            pos = l.location
+            from_point = l.location
             if l.data.type == "POINT":
-                data.append("LightSource \"point\" \"point from\" [" + str(pos.x) + " " + str(pos.y) + " " + str(pos.z) +" ] \"rgb I\" [ .5 .5 .5 ]")
+                data.append("LightSource \"point\" \"point from\" [" + str(from_point.x) + " " + str(from_point.y) + " " + str(from_point.z) +" ] \"rgb I\" [ .5 .5 .5 ]")
             elif l.data.type == "SUN":
-                data.append("LightSource \"distant\" \"point from\" [" + str(pos.x) + " " + str(pos.y) + " " + str(pos.z) +" ]")
+                world_matrix = l.matrix_world.copy()
+                to_point = (world_matrix.col[2] * - 1.0) + world_matrix.col[3]
+                data.append("LightSource \"distant\" \"point from\" [" + str(from_point.x) + " " + str(from_point.y) + " " + str(from_point.z) +" ] \"point to\" [" + str(to_point.x) + " " + str(to_point.y) + " " + str(to_point.z) +" ]")
                 data.append("    \"blackbody L\" [3000 1.5]")
         return data
 
