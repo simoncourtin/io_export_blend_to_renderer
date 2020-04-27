@@ -26,4 +26,8 @@ Use basic Blender render interface to define image resolution and output path fo
 
 ToDo : User interface to define Sampler, Integrator and Film parameters 
 
+### Mitsuba 0.6
+
+ToDo
+
 
