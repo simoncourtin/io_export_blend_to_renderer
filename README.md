@@ -24,7 +24,8 @@ Film        | A PNG file named "output.png" with resolution from blender render 
 Use node editor to define object material with PBRT Material category. 
 Use basic Blender render interface to define image resolution and output path for export path
 
-ToDo : User interface to define Sampler, Integrator and Film parameters 
+Specific UI for PBRT with sampling and integrator parameter
+ToDo : Film parameters 
 
 ### Mitsuba 0.6
 
