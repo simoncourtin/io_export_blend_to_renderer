@@ -82,10 +82,9 @@ class PbrtScene(ExporterScene):
         data.append("Scale -1 1 1 # flipped image")
         data.extend(self.export_camera())
         
-        data.append("Sampler \"halton\" \"integer pixelsamples\" 32")
-        
-        integrator = "directlighting"
-        data.append("Integrator \"" + integrator + "\" ")
+        # Sampler, Integrator, ...
+        pbrt_properties = scene.pbrt
+        data.extend(pbrt_properties.export())
 
         data.append("Film \"image\" \"string filename\" \"output.png\"")
         data.append("     \"integer xresolution\" [" + str(scene.render.resolution_x) + "] \"integer yresolution\" ["+str(scene.render.resolution_y)+"]")
@@ -149,8 +148,25 @@ class PbrtExporter(RenderExporter):
         self.report({"INFO"}, "Pbrt Scene Exported")
         return {'FINISHED'}
 
+
+#render engine custom begin
+class PBRTRenderEngine(bpy.types.RenderEngine):
+    bl_idname = 'PBRT'
+    bl_label = 'PBRT'
+    bl_use_preview = False
+    bl_use_material = True
+    bl_use_shading_nodes = True
+    bl_use_shading_nodes_custom = False
+    bl_use_texture_preview = True
+    bl_use_texture = True
+    
+    def render(self, scene):
+        self.report({'ERROR'}, "Use export function in PBRT panel.")
+
+
 classes = (
     PbrtExporter,
+    PBRTRenderEngine,
 )
 
 def register():

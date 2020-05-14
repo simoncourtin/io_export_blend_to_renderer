@@ -69,38 +69,6 @@ class RenderExporter(bpy.types.Operator):
         for d in data:
             scene_file.write(d + "\n")
     
-    
-
-#render engine custom begin
-class PBRTRenderEngine(bpy.types.RenderEngine):
-    bl_idname = 'PBRT_Renderer'
-    bl_label = 'PBRT_Renderer'
-    bl_use_preview = False
-    bl_use_material = True
-    bl_use_shading_nodes = False
-    bl_use_shading_nodes_custom = False
-    bl_use_texture_preview = True
-    bl_use_texture = True
-    
-    def render(self, scene):
-        self.report({'ERROR'}, "Use export function in PBRT panel.")
-
-from bl_ui import properties_render
-from bl_ui import properties_material
-for member in dir(properties_render):
-    subclass = getattr(properties_render, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PBRT_Renderer')
-    except:
-        pass
-
-for member in dir(properties_material):
-    subclass = getattr(properties_material, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PBRT_Renderer')
-    except:
-        pass
-
 classes = (
     RenderExporter,
 )
