@@ -15,8 +15,8 @@ Lamps       | Selected lamps are exported in .pbrt file. Convert blender lamps t
 Materials   | Pbrt node in node editor pbrt material : disney, glass, kdsubsurface, matte, metal, mirror, plastic, subsurface
 Textures    | ToDo
 Camera      | Simple perspective camera with position and look at.
-Sampler     | A "halton" sampler with only 32 pixelsamples
-Intergrator | Simple direclighting integrator 
+Sampler     | All sampler are supported. PixelsSample can be specify. StratifiedSampler  parameters are not supported.
+Intergrator | All integrators are supported with their parameter
 Film        | A PNG file named "output.png" with resolution from blender render resolution
 
 **UI**
