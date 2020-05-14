@@ -163,6 +163,9 @@ class PBRTRender_sampling(PBRTButtonsPanel, Panel):
         col.label("Accereator:")
         col.prop(scene.pbrt, "accel")
 
+        col.label("")
+        col.operator("export.scene_to_pbrt_scene", text="Export PBRT file", icon="NONE")
+
 def get_panels():
     exclude_panels = {
         'DATA_PT_area',
