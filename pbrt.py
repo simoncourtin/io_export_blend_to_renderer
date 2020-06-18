@@ -2,9 +2,13 @@ import bpy
 import os
 
 from io_export_blend_to_renderer.exporter import ExporterScene, RenderExporter
-from io_export_blend_to_renderer.nodes.pbrtNode import PbrtMaterialNode, Pbrt_ExistingExportMaterial
+from io_export_blend_to_renderer.nodes.pbrtNode import PbrtMaterialNode, PbrtEnvironnementNode, Pbrt_ExistingExportMaterial,Pbrt_ExportEnvironnement
+
+textures = []
+texture_path = ""
 
 class PbrtScene(ExporterScene):
+   
 
     def __init__(self, camera, meshes=[], lamps=[], materials=[]):
         self.camera = camera
@@ -43,8 +47,16 @@ class PbrtScene(ExporterScene):
                         str_material = "MakeNamedMaterial \""+ m.name + "\" " + Pbrt_ExistingExportMaterial(node_brdf)
 
             data.append(str_material)  
-        
-        return data      
+        return data 
+
+    
+    def export_textures(self):
+        data = []
+        for t in textures:
+            print(t)
+            data.append(t)  
+        data.append("")
+        return data
 
     def export_meshes(self):
         data = []
@@ -92,11 +104,26 @@ class PbrtScene(ExporterScene):
         data.append("")
         data.append("WorldBegin")
         data.append("")
+
+        #import material and textures
+        data_material = self.export_materials()
+        # Add Textures   
+        data.extend(self.export_textures())
         # Add Materials
-        data.extend(self.export_materials())
+        data.extend(data_material)
         data.append("")
         # Add Lamps
         data.extend(self.export_lamps())
+        # Envmap 
+        world = bpy.data.worlds['World']
+        if world.use_nodes and world.node_tree is not None:
+            world_output = world.node_tree.nodes["World Output"]
+            if len(world_output.inputs["Surface"].links) > 0:
+                node_environement = world_output.inputs["Surface"].links[0].from_node
+                if isinstance(node_environement, PbrtEnvironnementNode):
+                    data.append(Pbrt_ExportEnvironnement(node_environement))
+                    data.append("")
+
         # Add Meshes
         data.extend(self.export_meshes())
         data.append("")
@@ -114,11 +141,16 @@ class PbrtExporter(RenderExporter):
         cameras = []
         lamps = []
         materials = []
+        global textures
+        textures = []
 
         scene = context.scene
         path = scene.render.filepath
         model_path = path + "/models/"
         
+        global texture_path
+        texture_path = path + "/textures/"
+
         if not os.path.isdir(model_path):
             try :
                 os.mkdir(model_path)
