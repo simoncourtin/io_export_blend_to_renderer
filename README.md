@@ -11,9 +11,9 @@ Export selected meshes, lamps, camera to PBRT v3 scene format.
 Components  | Features
 :-----------|:-----------
 Meshes      | All selected meshes are exported in .ply file in models directory and other information inside .pbrt file. Export mesh material inside pbrt scene file.
-Lamps       | Selected lamps are exported in .pbrt file. Convert blender lamps types (POINT, SUN, SPOT, ...) to pbrt lamp types. **Supported** : distant, point with from and to point. **ToDo** Infinite, Spot, Area lights with user define parameters and envmap.
-Materials   | Pbrt node in node editor pbrt material : disney, glass, kdsubsurface, matte, metal, mirror, plastic, subsurface
-Textures    | ToDo
+Lamps       | Selected lamps are exported in .pbrt file. Convert blender lamps types (POINT, SUN, SPOT, ...) to pbrt lamp types. **Supported** : distant, point with from and to point. Infinite. Envmap and environement color is also supported **ToDo** Spot, Area lights.
+Materials   | Pbrt node in node editor pbrt material : disney, glass, kdsubsurface, matte, metal, mirror, plastic, subsurface, mixure, substrate
+Textures    | Support Texture in Color channel. Copy texture file in textures folder near models export folder
 Camera      | Simple perspective camera with position and look at.
 Sampler     | All sampler are supported. PixelsSample can be specify. StratifiedSampler  parameters are not supported.
 Intergrator | All integrators are supported with their parameter
@@ -25,7 +25,7 @@ Use node editor to define object material with PBRT Material category.
 Use basic Blender render interface to define image resolution and output path for export path
 
 Specific UI for PBRT with sampling and integrator parameters.
-ToDo : Film parameters 
+Film parameters : Resolution are same value of blender render resolution. 
 
 ### Mitsuba 0.6
 
