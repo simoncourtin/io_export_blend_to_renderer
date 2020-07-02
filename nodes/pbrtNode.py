@@ -6,12 +6,6 @@ from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
 
 import shutil
 import os
-""" for texture
-if len(i.links) > 0:
-    n = i.links[0].from_node
-    if isinstance(n,ShaderNodeTexChecker):
-        print("checkerboard")
-"""
 
 # Node sockets
 def Pbrt_SocketRGBA(socket):
@@ -27,7 +21,15 @@ def Pbrt_SocketBOOL(socket):
 def Pbrt_SocketVALUE(socket):
     return "\"float "+ socket.name + "\" "+ str(socket.default_value)
 
-def Pbrt_AddTexture(socket, node):
+def Pbrt_SocketSHADER(socket,data):
+    if len(socket.links) > 0:
+        node = socket.links[0].from_node
+        if isinstance(node, PbrtMaterialNode):
+            data.append(Pbrt_ExistingExportMaterial(node, "material."+ str(len(data)), data))
+            return  "\"string "+ socket.name + "\" \""+ "material."+ str(len(data)-1)+ "\""
+    return ""
+
+def Pbrt_AddTexture(socket, node, data):
     tex_type = None
     tex_parameter = ""
     tex_name = "Texture_" + str(len(pbrt.textures))
@@ -43,7 +45,6 @@ def Pbrt_AddTexture(socket, node):
             shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
     if node.type == "TEX_CHECKER":
         tex_type = "checkerboard"
-        print(node.inputs[1].type)
         color1 = [node.inputs[1].default_value[0], node.inputs[1].default_value[1], node.inputs[1].default_value[2]]
         color2 = [node.inputs[2].default_value[0], node.inputs[2].default_value[1], node.inputs[2].default_value[2]]
         scale = node.inputs[3].default_value
@@ -51,19 +52,19 @@ def Pbrt_AddTexture(socket, node):
         tex_parameter += "\"rgb tex1\" " +str(color1)+" \"rgb tex2\" "+str(color2)+" "
      
     texture = "Texture \""+tex_name+"\" \"spectrum\" \""+tex_type+"\" " + tex_parameter
-    pbrt.textures.append(texture)
+    data.append(texture)
     
     return "\"texture "+ socket.name + "\" \"" +tex_name+ "\""
 
 # Export Socket
-def Pbrt_ExportSockets(node):
+def Pbrt_ExportSockets(node, data):
     parameters = ""
     for i in node.inputs:
         if i.type == "RGBA" :
             rgba = Pbrt_SocketRGBA(i)
             if(len(i.links) > 0):
                 if i.links[0].from_node.type in ["TEX_IMAGE", "TEX_CHECKER"]:
-                    rgba = Pbrt_AddTexture(i, i.links[0].from_node)
+                    rgba = Pbrt_AddTexture(i, i.links[0].from_node, data)
             parameters += rgba
         elif i.type == "INT" :
             parameters += Pbrt_SocketINT(i)
@@ -71,18 +72,18 @@ def Pbrt_ExportSockets(node):
             parameters += Pbrt_SocketVALUE(i)
         elif i.type == "BOOL" :
             parameters += Pbrt_SocketBOOL(i)
+        elif i.type == "SHADER" :
+            parameters += Pbrt_SocketSHADER(i, data)
         parameters += " "
     return parameters
 
 # Export Material in PBRT scene format
 def Pbrt_ExportMaterial(pbrt_mat):
-    string_export = "Material \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat)          
-    #print(string_export)
+    string_export = "Material \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat, new_materials)          
     return string_export
 
-def Pbrt_ExistingExportMaterial(pbrt_mat):
-    string_export = "\"string type\" \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat)          
-    #print(string_export)
+def Pbrt_ExistingExportMaterial(pbrt_mat, name, data):
+    string_export = "MakeNamedMaterial \""+ name + "\" \"string type\" \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat, data)
     return string_export
 
 def Pbrt_ExportEnvironnement(pbrt_environement):
@@ -110,6 +111,14 @@ def Pbrt_ExportEnvironnement(pbrt_environement):
     environement = "LightSource \"infinite\" " + parameters
     return environement
 
+def Pbrt_ExportLamp(node, name):
+    lamp_parameter = ""
+    if node.type == "EMISSION":
+        mult = node.inputs[1].default_value
+        color = [node.inputs[0].default_value[0] * mult, node.inputs[0].default_value[1] * mult, node.inputs[0].default_value[2] * mult]
+        lamp_parameter += "\"rgb "+name+"\" " + str(color)
+    return lamp_parameter
+
 class PbrtMaterialNode(Node):
     bl_idname = "PbrtMaterialNode"
     bl_label = "Pbrt material Node"
@@ -119,7 +128,8 @@ class PbrtMaterialNode(Node):
 
     def add_input(self, socket_type, name, default_value):
         input = self.inputs.new(socket_type, name)
-        input.default_value = default_value
+        if default_value is not None:
+            input.default_value = default_value
         return input
 
     def add_ouput(self, socket_type, name):
@@ -173,6 +183,17 @@ class PbrtMetalMaterialNode(PbrtMaterialNode):
 
     def draw_label(self):
         return "Pbrt Metal"
+
+class PbrtMirrorMaterialNode(PbrtMaterialNode):
+    bl_idname = "PbrtMirrorMaterial"
+    bl_label = "PBRT Mirror Material Node"
+    pbrt_name = "mirror"
+    def init(self, context):
+        super().init(context)
+        self.add_input("NodeSocketColor", "Kr", (1.0, 1.0, 1.0, 1.0))
+
+    def draw_label(self):
+        return "Pbrt Mirror"
 
 class PbrtDisneyMaterialNode(PbrtMaterialNode):
     bl_idname = "PbrtDisneyMaterial"
@@ -235,6 +256,36 @@ class PbrtKdsubsurfaceMaterialNode(PbrtMaterialNode):
     def draw_label(self):
         return "Pbrt Kdsubsurface"
 
+class PbrtSubstrateMaterialode(PbrtMaterialNode):
+    bl_idname = "PbrtSubstrateMaterial"
+    bl_label = "PBRT Substrate Material Node"
+    pbrt_name = "substrate"
+
+    def init(self, context):
+        super().init(context)
+        self.add_input("NodeSocketColor", "Kd", (1.0, 1.0, 1.0, 1.0))
+        self.add_input("NodeSocketColor", "Ks", (1.0, 1.0, 1.0, 1.0))
+        self.add_input("NodeSocketFloat", "uroughness", 0.0)
+        self.add_input("NodeSocketFloat", "vroughness", 0.0)
+        self.add_input("NodeSocketBool", "remaproughness", True)
+
+    def draw_label(self):
+        return "Pbrt Kdsubsurface"
+
+class PbrtMixtureMaterialNode(PbrtMaterialNode):
+    bl_idname = "PbrtMixtureMaterial"
+    bl_label = "PBRT Mixure Material Node"
+    pbrt_name = "mix"
+
+    def init(self, context):
+        super().init(context)
+        self.add_input("NodeSocketFloat", "amount", 0.5)
+        self.add_input("NodeSocketShader", "namedmaterial1", None)
+        self.add_input("NodeSocketShader", "namedmaterial2", None)
+
+    def draw_label(self):
+        return "Pbrt Mixure"
+
 class PbrtEnvironnementNode(PbrtMaterialNode):
     bl_idname = "PbrtEnvironementMaterial"
     bl_label = "PBRT Environement Node"
@@ -257,9 +308,12 @@ node_categories = [PbrtNodeCategory(identifier, "Pbrt Material Nodes", items=[
     NodeItem("PbrtMatteMaterial"),
     NodeItem("PbrtPlasticMaterial"),
     NodeItem("PbrtMetalMaterial"),
+    NodeItem("PbrtMirrorMaterial"),
     NodeItem("PbrtDisneyMaterial"),
     NodeItem("PbrtGlassMaterial"),
     NodeItem("PbrtKdsubsurfaceMaterial"),
+    NodeItem("PbrtSubstrateMaterial"),
+    NodeItem("PbrtMixtureMaterial"),
     NodeItem("PbrtEnvironementMaterial")
 ])]
 
@@ -267,9 +321,12 @@ classes = (
     PbrtMatteMaterialNode,
     PbrtPlasticMaterialNode,
     PbrtMetalMaterialNode,
+    PbrtMirrorMaterialNode,
     PbrtDisneyMaterialNode,
     PbrtGlassMaterialNode,
     PbrtKdsubsurfaceMaterialNode,
+    PbrtSubstrateMaterialode,
+    PbrtMixtureMaterialNode,
     PbrtEnvironnementNode,
 )
 

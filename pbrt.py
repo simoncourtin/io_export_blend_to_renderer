@@ -2,9 +2,8 @@ import bpy
 import os
 
 from io_export_blend_to_renderer.exporter import ExporterScene, RenderExporter
-from io_export_blend_to_renderer.nodes.pbrtNode import PbrtMaterialNode, PbrtEnvironnementNode, Pbrt_ExistingExportMaterial,Pbrt_ExportEnvironnement
+from io_export_blend_to_renderer.nodes.pbrtNode import PbrtMaterialNode, Pbrt_ExportLamp, PbrtEnvironnementNode, Pbrt_ExistingExportMaterial,Pbrt_ExportEnvironnement
 
-textures = []
 texture_path = ""
 
 class PbrtScene(ExporterScene):
@@ -44,19 +43,10 @@ class PbrtScene(ExporterScene):
                 if len(node_output.inputs["Surface"].links) > 0:
                     node_brdf = node_output.inputs["Surface"].links[0].from_node
                     if isinstance(node_brdf, PbrtMaterialNode):
-                        str_material = "MakeNamedMaterial \""+ m.name + "\" " + Pbrt_ExistingExportMaterial(node_brdf)
+                        str_material = Pbrt_ExistingExportMaterial(node_brdf, m.name, data)
 
             data.append(str_material)  
         return data 
-
-    
-    def export_textures(self):
-        data = []
-        for t in textures:
-            print(t)
-            data.append(t)  
-        data.append("")
-        return data
 
     def export_meshes(self):
         data = []
@@ -78,13 +68,29 @@ class PbrtScene(ExporterScene):
         for l in self.lamps:
             lamp_type = None
             from_point = l.location
+            color =  "[ .5 .5 .5 ]"
+            node_lamp = None
+            if l.data.node_tree is not None:
+                node_output = l.data.node_tree.nodes["Lamp Output"]
+                if len(node_output.inputs["Surface"].links) > 0:
+                    node_lamp = node_output.inputs["Surface"].links[0].from_node
+                   
+
             if l.data.type == "POINT":
-                data.append("LightSource \"point\" \"point from\" [" + str(from_point.x) + " " + str(from_point.y) + " " + str(from_point.z) +" ] \"rgb I\" [ .5 .5 .5 ]")
+                if node_lamp is not None:
+                    color = Pbrt_ExportLamp(node_lamp, "I")
+                else :
+                    color = "\"rgb I\" " + color
+                data.append("LightSource \"point\" \"point from\" [" + str(from_point.x) + " " + str(from_point.y) + " " + str(from_point.z) +" ] " + color)
             elif l.data.type == "SUN":
                 world_matrix = l.matrix_world.copy()
                 to_point = (world_matrix.col[2] * - 1.0) + world_matrix.col[3]
                 data.append("LightSource \"distant\" \"point from\" [" + str(from_point.x) + " " + str(from_point.y) + " " + str(from_point.z) +" ] \"point to\" [" + str(to_point.x) + " " + str(to_point.y) + " " + str(to_point.z) +" ]")
-                data.append("    \"blackbody L\" [3000 1.5]")
+                if node_lamp is not None:
+                    color = Pbrt_ExportLamp(node_lamp, "L")
+                else :
+                    color = "\"blackbody L\" [3000 1.5]"
+                data.append("    "+color)
         return data
 
 
@@ -107,8 +113,6 @@ class PbrtScene(ExporterScene):
 
         #import material and textures
         data_material = self.export_materials()
-        # Add Textures   
-        data.extend(self.export_textures())
         # Add Materials
         data.extend(data_material)
         data.append("")
@@ -163,7 +167,6 @@ class PbrtExporter(RenderExporter):
             for f in files:
                 os.remove(os.path.join(model_path, f))
         
-        scene = context.scene
         meshes, cameras, lamps, materials = self.extract_scene_informations(scene)
         
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -180,6 +183,64 @@ class PbrtExporter(RenderExporter):
         self.report({"INFO"}, "Pbrt Scene Exported")
         return {'FINISHED'}
 
+class PbrtExporterAnim(RenderExporter):
+    bl_idname = "export.scene_to_pbrt_anim"
+    bl_label = "& Pbrt Anim Exporter"
+
+    def execute(self, context):
+        scene = bpy.context.scene
+        f_start = scene.frame_start
+        f_end = scene.frame_end
+        for i in range(f_start, f_end + 1 ):  
+            bpy.context.scene.frame_set(i)
+            # Export scene
+            self.export_frame(scene, i)
+
+        bpy.context.scene.frame_set(f_start)
+        self.report({"INFO"}, "Pbrt Anim Exported")
+        return {'FINISHED'}
+    
+    def export_frame(self, scene, frame):
+        meshes = []
+        cameras = []
+        lamps = []
+        materials = []
+        global textures
+        textures = []
+
+        path = scene.render.filepath
+        model_path = path + "/models/"
+        
+        global texture_path
+        texture_path = path + "/textures/"
+
+        if not os.path.isdir(model_path):
+            try :
+                os.mkdir(model_path)
+            except OSError:
+                print ("Failed Create model directory at " + model_path)
+                self.report({"ERROR"}, "Failed Create model directory at " + model_path)
+                return {"CANCELLED"}
+        else :
+            files = [ f for f in os.listdir(model_path) if f.endswith(".ply") ]
+            for f in files:
+                os.remove(os.path.join(model_path, f))
+        
+        meshes, cameras, lamps, materials = self.extract_scene_informations(scene)
+        
+        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        # export meshes to ply
+        for m in meshes:
+            scene.objects.active = m
+            bpy.ops.export_mesh.ply(filepath=model_path + str(m.name) + ".ply")
+                
+        pbrt_scene = PbrtScene(scene.camera, meshes, lamps, materials)
+        data = pbrt_scene.exportScene(scene)
+
+        self.write_scene_file(data, path, "scene_frame"+str(frame)+".pbrt")
+        self.report({"INFO"}, "Pbrt Scene Exported")
+        return {'FINISHED'}
 
 #render engine custom begin
 class PBRTRenderEngine(bpy.types.RenderEngine):
@@ -198,6 +259,7 @@ class PBRTRenderEngine(bpy.types.RenderEngine):
 
 classes = (
     PbrtExporter,
+    PbrtExporterAnim,
     PBRTRenderEngine,
 )
 

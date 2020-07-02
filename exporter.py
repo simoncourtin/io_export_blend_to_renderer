@@ -35,11 +35,6 @@ class RenderExporter(bpy.types.Operator):
                 os.remove(os.path.join(model_path, f))
         
         meshes, cameras, lamps, materials = self.extract_scene_informations(scene)
-        
-        print(meshes)
-        print(cameras)
-        print(lamps)
-        print(materials)
                 
         return {'FINISHED'}
 

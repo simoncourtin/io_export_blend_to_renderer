@@ -165,6 +165,7 @@ class PBRTRender_sampling(PBRTButtonsPanel, Panel):
 
         col.label("")
         col.operator("export.scene_to_pbrt_scene", text="Export PBRT file", icon="NONE")
+        col.operator("export.scene_to_pbrt_anim", text="Export PBRT Animation", icon="NONE")
 
 def get_panels():
     exclude_panels = {
