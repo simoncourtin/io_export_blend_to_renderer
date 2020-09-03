@@ -106,6 +106,17 @@ class PbrtScene(ExporterScene):
 
         data.append("Film \"image\" \"string filename\" \"output.png\"")
         data.append("     \"integer xresolution\" [" + str(scene.render.resolution_x) + "] \"integer yresolution\" ["+str(scene.render.resolution_y)+"]")
+        if bpy.data.scenes["Scene"].render.use_border:
+            min_x = round(bpy.data.scenes["Scene"].render.border_min_x,2)
+            max_x = round(bpy.data.scenes["Scene"].render.border_max_x,2)
+            min_y = round(bpy.data.scenes["Scene"].render.border_min_y,2)
+            max_y = round(bpy.data.scenes["Scene"].render.border_max_y,2)
+            x_resolution = scene.render.resolution_x
+            y_resolution = scene.render.resolution_y
+            pix_min = [int(x_resolution * min_x), int(y_resolution * min_y)]
+            pix_max = [int(x_resolution * max_x), int(y_resolution * max_y)]
+            print("crop : ", pix_min, pix_max)
+            data.append("     \"float cropwindow\" [ %.2f %.2f  %.2f %.2f ]" % (min_x, max_x, min_y, max_y))
         
         data.append("")
         data.append("WorldBegin")
