@@ -37,7 +37,7 @@ def Pbrt_AddTexture(socket, node, data):
     if node.type == "TEX_IMAGE":
         tex_type = "imagemap"
         tex_parameter += "\"string filename\" \"textures/"+node.image.name+"\" "
-        # TODO copy image file 
+        # TODO copy image file
         try:
             shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
         except IOError as io_err:
@@ -50,10 +50,10 @@ def Pbrt_AddTexture(socket, node, data):
         scale = node.inputs[3].default_value
         tex_parameter += "\"float uscale\" ["+str(scale)+"] \"float vscale\" ["+str(scale)+"] "
         tex_parameter += "\"rgb tex1\" " +str(color1)+" \"rgb tex2\" "+str(color2)+" "
-     
+
     texture = "Texture \""+tex_name+"\" \"spectrum\" \""+tex_type+"\" " + tex_parameter
     data.append(texture)
-    
+
     return "\"texture "+ socket.name + "\" \"" +tex_name+ "\""
 
 # Export Socket
@@ -79,11 +79,19 @@ def Pbrt_ExportSockets(node, data):
 
 # Export Material in PBRT scene format
 def Pbrt_ExportMaterial(pbrt_mat):
-    string_export = "Material \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat, new_materials)          
+    string_export = "Material \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat, new_materials)
     return string_export
 
 def Pbrt_ExistingExportMaterial(pbrt_mat, name, data):
     string_export = "MakeNamedMaterial \""+ name + "\" \"string type\" \"" + pbrt_mat.pbrt_name + "\" " + Pbrt_ExportSockets(pbrt_mat, data)
+    return string_export
+
+def Pbrt_ExportMaterialAreaLight(pbrt_mat):
+    node_output = pbrt_mat.node_tree.nodes["Material Output"]
+    node = node_output.inputs["Surface"].links[0].from_node
+    strenght = node.inputs[1].default_value
+    L = node.inputs[0].default_value
+    string_export = "AreaLightSource \"diffuse\" \"rgb "+ node.inputs[0].name +"\" ["+ str(L[0]*strenght) + " " + str(L[1]*strenght) + " " + str(L[2]*strenght) +"]"
     return string_export
 
 def Pbrt_ExportEnvironnement(pbrt_environement):
@@ -135,12 +143,25 @@ class PbrtMaterialNode(Node):
     def add_ouput(self, socket_type, name):
         output = self.outputs.new(socket_type, name)
         return output
-        
+
     def draw_buttons(self, context, layout):
         layout.label(text="")
 
     def draw_label(self):
         return "PbrtMaterialNode"
+
+
+class PbrtAreaLightNode(PbrtMaterialNode):
+    bl_idname = "PbrtAreaLight"
+    bl_label = "PBRT Area Light Node"
+    pbrt_name = "area_light"
+    def init(self, context):
+        super().init(context)
+        self.add_input("NodeSocketColor", "L", (1.0, 1.0, 1.0, 1.0))
+        self.add_input("NodeSocketFloat", "Strenght", 1.0)
+
+    def draw_label(self):
+        return "Pbrt Areal Light"
 
 class PbrtMatteMaterialNode(PbrtMaterialNode):
     bl_idname = "PbrtMatteMaterial"
@@ -164,7 +185,7 @@ class PbrtPlasticMaterialNode(PbrtMaterialNode):
         self.add_input("NodeSocketColor", "Kd", (1.0, 1.0, 1.0, 1.0))
         self.add_input("NodeSocketColor", "Ks", (1.0, 1.0, 1.0, 1.0))
         self.add_input("NodeSocketFloat", "roughness", 0.0)
- 
+
     def draw_label(self):
         return "Pbrt Plastic"
 
@@ -223,7 +244,7 @@ class PbrtGlassMaterialNode(PbrtMaterialNode):
     bl_idname = "PbrtGlassMaterial"
     bl_label = "PBRT Glass Material Node"
     pbrt_name = "glass"
-    
+
     def init(self, context):
         super().init(context)
         self.add_input("NodeSocketColor", "Kr", (1.0, 1.0, 1.0, 1.0))
@@ -232,7 +253,7 @@ class PbrtGlassMaterialNode(PbrtMaterialNode):
         self.add_input("NodeSocketFloat", "uroughness", 0.0)
         self.add_input("NodeSocketFloat", "vroughness", 0.0)
         self.add_input("NodeSocketBool", "remaproughness", True)
-    
+
     def draw_label(self):
         return "Pbrt Glass"
 
@@ -314,7 +335,8 @@ node_categories = [PbrtNodeCategory(identifier, "Pbrt Material Nodes", items=[
     NodeItem("PbrtKdsubsurfaceMaterial"),
     NodeItem("PbrtSubstrateMaterial"),
     NodeItem("PbrtMixtureMaterial"),
-    NodeItem("PbrtEnvironementMaterial")
+    NodeItem("PbrtEnvironementMaterial"),
+    NodeItem("PbrtAreaLight")
 ])]
 
 classes = (
@@ -328,12 +350,13 @@ classes = (
     PbrtSubstrateMaterialode,
     PbrtMixtureMaterialNode,
     PbrtEnvironnementNode,
+    PbrtAreaLightNode
 )
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    
+
     if identifier in nodeitems_utils._node_categories:
         nodeitems_utils.unregister_node_categories(identifier)
     nodeitems_utils.register_node_categories(identifier, node_categories)
@@ -342,7 +365,5 @@ def unregister():
     nodeitems_utils.unregister_node_categories(identifier)
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    
+
     nodeitems_utils.unregister_node_categories("PBRT_MATERIAL_TREE")
-
-
