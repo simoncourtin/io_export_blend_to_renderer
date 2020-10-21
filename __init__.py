@@ -62,6 +62,13 @@ enum_accelerator = (
 
 class RenderPBRTSettingsScene(PropertyGroup):
     
+    output_file = StringProperty(
+                name="Output File Name",
+                description="Name of output img file",
+                default='output.png',
+                )
+
+
     sampler = EnumProperty(
                 name="Sampler",
                 description="Sampler to use for sampling",

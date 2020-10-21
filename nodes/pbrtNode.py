@@ -4,6 +4,7 @@ from bpy.types import NodeTree, Node, NodeSocket
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
 
+
 import shutil
 import os
 
@@ -102,12 +103,13 @@ def Pbrt_ExportEnvironnement(pbrt_environement):
             if(len(i.links) > 0):
                 tex_node = i.links[0].from_node
                 if tex_node.type == "TEX_ENVIRONMENT" :
+                    print(bpy.path.basename(tex_node.image.filepath))
                     try:
                         shutil.copyfile(bpy.path.abspath(tex_node.image.filepath), pbrt.texture_path+tex_node.image.name)
                     except IOError as io_err:
                         os.makedirs(pbrt.texture_path)
                         shutil.copyfile(bpy.path.abspath(tex_node.image.filepath), pbrt.texture_path+tex_node.image.name)
-                    rgba = "\"string mapname\" [ \"textures/"+ tex_node.image.name + "\" ]"
+                    rgba = "\"string mapname\" [ \"textures/"+ bpy.path.basename(tex_node.image.filepath) + "\" ]"
             parameters += rgba
         elif i.type == "INT" :
             parameters += Pbrt_SocketINT(i)

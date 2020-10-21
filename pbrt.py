@@ -122,7 +122,7 @@ class PbrtScene(ExporterScene):
         pbrt_properties = scene.pbrt
         data.extend(pbrt_properties.export())
 
-        data.append("Film \"image\" \"string filename\" \"output.png\"")
+        data.append("Film \"image\" \"string filename\" \""+scene.pbrt.output_file+"\"")
         data.append("     \"integer xresolution\" [" + str(scene.render.resolution_x) + "] \"integer yresolution\" ["+str(scene.render.resolution_y)+"]")
         if bpy.data.scenes["Scene"].render.use_border:
             min_x = round(bpy.data.scenes["Scene"].render.border_min_x,2)
