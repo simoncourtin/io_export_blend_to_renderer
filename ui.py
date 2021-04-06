@@ -136,7 +136,20 @@ class PBRTRender_sampling(PBRTButtonsPanel, Panel):
         col.prop(scene.pbrt, "sampler")
         col.prop(scene.pbrt, "pixelsamples")
         
-        
+        col.label("Camera:")
+        col.prop(scene.pbrt, "camera")
+        if scene.pbrt.camera == "perspective":
+            col.prop(scene.pbrt, "lensradius")
+            col.prop(scene.pbrt, "fov")
+        if scene.pbrt.camera == "orthographic":
+            col.prop(scene.pbrt, "fov")
+            col.prop(scene.pbrt, "lensradius")
+        if scene.pbrt.camera == "realistic":
+            col.prop(scene.pbrt, "lensfile")
+            col.prop(scene.pbrt, "aperturediameter")
+            col.prop(scene.pbrt, "focusdistance")
+            col.prop(scene.pbrt, "simpleweighting")
+
         col.label("Integrator:")
         col.prop(scene.pbrt, "integrator")
 

@@ -38,7 +38,8 @@ class PbrtScene(ExporterScene):
         data.append("LookAt " + str(eye.x) + " " + str(eye.y) + " " + str(eye.z) + " # eye")
         data.append("        "+ str(look_at.x) + " " + str(look_at.y) + " " + str(look_at.z) +"  # look at point")
         data.append("        0 0 1    # up vector")
-        data.append("Camera \"perspective\" \"float fov\" " + str(fov))
+        # Comment use Camera description
+        # data.append("Camera \"perspective\" \"float fov\" " + str(fov))
         return data
 
     def export_materials(self):

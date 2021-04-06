@@ -38,12 +38,14 @@ def Pbrt_AddTexture(socket, node, data):
     if node.type == "TEX_IMAGE":
         tex_type = "imagemap"
         tex_parameter += "\"string filename\" \"textures/"+node.image.name+"\" "
-        # TODO copy image file
-        try:
-            shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
-        except IOError as io_err:
-            os.makedirs(pbrt.texture_path)
-            shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
+        if not os.path.isfile(pbrt.texture_path+node.image.name):
+            try:
+                shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
+            except IOError as io_err:
+                os.makedirs(pbrt.texture_path)
+                shutil.copyfile(bpy.path.abspath(node.image.filepath), pbrt.texture_path+node.image.name)
+        else :
+            print("file already exists")
     if node.type == "TEX_CHECKER":
         tex_type = "checkerboard"
         color1 = [node.inputs[1].default_value[0], node.inputs[1].default_value[1], node.inputs[1].default_value[2]]
