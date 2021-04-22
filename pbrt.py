@@ -209,7 +209,7 @@ class PbrtExporter(RenderExporter):
         pbrt_scene = PbrtScene(scene.camera, meshes, lamps, materials)
         data = pbrt_scene.exportScene(scene)
 
-        self.write_scene_file(data, path, "scene.pbrt")
+        self.write_scene_file(data, path, scene.pbrt.scene_file)
         self.report({"INFO"}, "Pbrt Scene Exported")
         return {'FINISHED'}
 

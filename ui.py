@@ -131,6 +131,7 @@ class PBRTRender_sampling(PBRTButtonsPanel, Panel):
         scene = context.scene
        
         col = layout
+        col.prop(scene.pbrt, "scene_file")
         col.prop(scene.pbrt, "output_file")
         col.label("Sampling:")
         col.prop(scene.pbrt, "sampler")

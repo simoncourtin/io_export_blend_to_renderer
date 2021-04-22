@@ -69,12 +69,19 @@ enum_camera = (
     )
 
 class RenderPBRTSettingsScene(PropertyGroup):
-    
+
+    scene_file = StringProperty(
+                name="Scene File Name",
+                description="Name of pbrt scene file",
+                default='scene.pbrt',
+                )
+                
     output_file = StringProperty(
                 name="Output File Name",
                 description="Name of output img file",
                 default='output.png',
                 )
+                
 
 
     sampler = EnumProperty(
